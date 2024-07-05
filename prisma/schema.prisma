@@ -1,0 +1,27 @@
+generator client {
+    provider = "prisma-client-js"
+}
+
+datasource db {
+    provider = "mongodb"
+    url      = env("DATABASE_URL")
+}
+
+model user {
+    id         String   @id @default(uuid()) @map("_id")
+    username   String   @unique
+    password   String
+    tokens     Int      @default(100)
+    tokenTxns  Json    
+    friendList Json     @default("[]") // Ensure valid JSON structure
+    createdAt  DateTime @default(now())
+    updatedAt  DateTime @updatedAt
+}
+
+model txns {
+    id          String   @id @default(uuid()) @map("_id")
+    userId      String?
+    transaction Json?
+    createdAt   DateTime @default(now())
+    updatedAt   DateTime @updatedAt
+}
