@@ -40,17 +40,22 @@ const authOptions = {
             console.log('Creating new user');
             const hashedPassword = await bcrypt.hash(credentials.password, 10);
             const newUser = await prisma.user.create({
-               data: {
-              username:credentials.username,
-              password: hashedPassword,
-              tokenTxns:[{
-                type: 'bonus',
-                amount: 100,
-                updatedAmount:100,
-                timestamp: currentDateTime
-              }]
-            },
-            });
+              data: {
+                  username: credentials.username,
+                  password: hashedPassword,
+                  tokens: 100, // Initialize with 100 tokens
+                  tokenTxns: {
+                      create: {
+                          transaction: {
+                              type: 'bonus',
+                              amount: 100,
+                              updatedAmount: 100,
+                              timestamp: currentDateTime,
+                          },
+                      },
+                  },
+              },
+          });
             return newUser;
           }
         } catch (error) {
@@ -96,12 +101,16 @@ const authOptions = {
             data: {
               username,
               password: hashedPassword,
-              tokenTxns:[{
-                type: 'bonus',
-                amount: 100,
-                updatedAmount:100,
-                timestamp: currentDateTime
-              }]
+              tokenTxns: {
+                create: {
+                    transaction: {
+                        type: 'bonus',
+                        amount: 100,
+                        updatedAmount: 100,
+                        timestamp: currentDateTime,
+                    },
+                },
+            },
             },
           });
           token.id = newUser.id;

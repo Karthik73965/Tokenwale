@@ -68,7 +68,7 @@ export default function LoginPage() {
 
   return (
     <main className=' w-full bg-[#282828]  h-[80vh] mt-10 px-10 rounded-2xl '>
-      <ToastContainer/>
+      <ToastContainer />
       <h1 className='md:text-[48px] text-3xl mt-10 flex text-[#38F68F] justify-between py-5'><span>SignIn here</span> <Link href={'/'} ><RxCross2 className='m-2' /></Link> </h1>
       <section className='flex flex-col items-center  justify-center'>
         <button

@@ -8,7 +8,6 @@ export const FetchUserInfo = async (id: string) => {
         const userinfo = await prisma.user.findFirst({
             where: { id }
         })
-        console.log(userinfo)
         return userinfo
     } catch (error) {
         return null
@@ -16,130 +15,149 @@ export const FetchUserInfo = async (id: string) => {
 }
 
 export const TransferToken = async (FromId: string, ToId: string, tokens: number) => {
-
     try {
-        const FromUser = await FetchUserInfo(FromId)
-        const ToUser = await FetchUserInfo(ToId)
+        const FromUser = await FetchUserInfo(FromId);
+        const ToUser = await FetchUserInfo(ToId);
 
         if (FromUser && ToUser) {
-            const FromUserTokens = FromUser?.tokens || 0
-            const FromUserTxns = FromUser?.tokenTxns
-            const UpdatedFromUserTokens = FromUserTokens - tokens
+            const UpdatedFromUserTokens = FromUser.tokens - tokens;
+            const UpdatedToUserTokens = ToUser.tokens + tokens;
+
+            // Update FromUser's tokens and create a token transaction
             const UpdateFromUser = await prisma.user.update({
                 where: { id: FromId },
                 data: {
                     tokens: UpdatedFromUserTokens,
-                    //@ts-ignore
-                    tokenTxns: [...FromUserTxns, {
-                        type: ToId,
-                        amount: -tokens,
-                        updatedAmount: UpdatedFromUserTokens,
-                        timestamp: currentDateTime
-                    }]
-                }
-            })
-            console.log(UpdateFromUser, " updaring From user ...............")
+                    tokenTxns: {
+                        create: {
+                            transaction: {
+                                type: ToId,
+                                amount: -tokens,
+                                updatedAmount: UpdatedFromUserTokens,
+                                timestamp: currentDateTime,
+                            },
+                        },
+                    },
+                },
+            });
 
-            const ToUserTokens = ToUser?.tokens || 0
-            const ToUserTxns = ToUser?.tokenTxns
-            const UpdatedToUserTokens = ToUserTokens + tokens
-            console.log(UpdatedFromUserTokens)
-            const date = new Date().toISOString();
-
+            // Update ToUser's tokens and create a token transaction
             const UpdatedToUser = await prisma.user.update({
                 where: { id: ToId },
                 data: {
                     tokens: UpdatedToUserTokens,
-                    //@ts-ignore
-                    tokenTxns: [...ToUserTxns, {
-                        type: FromId,
-                        amount: tokens,
-                        updatedAmount: UpdatedToUserTokens,
-                        timestamp: date
-                    }]
-                }
-            })
-            console.log(UpdatedToUser, " updaring to user ...............")
-            const PushTxns = await prisma.txns.create({
+                    tokenTxns: {
+                        create: {
+                            transaction: {
+                                type: FromId,
+                                amount: tokens,
+                                updatedAmount: UpdatedToUserTokens,
+                                timestamp: currentDateTime,
+                            },
+                        },
+                    },
+                },
+            });
+
+            // Create a transaction record
+            const PushTxns = await prisma.transaction.create({
                 data: {
                     userId: FromId,
                     transaction: {
                         FromId,
-                        FromUserName: FromUser?.username,
-                        ToUserName: ToUser?.username,
+                        FromUserName: FromUser.username,
+                        ToUserName: ToUser.username,
                         ToId,
-                        tokens
-                    }
-                }
-            })
-            console.log(PushTxns, "updating txns ")
+                        tokens,
+                    },
+                },
+            });
 
             return {
                 PushTxns,
                 UpdatedToUser,
-                UpdateFromUser
-            }
+                UpdateFromUser,
+            };
         } else {
-            return null
+            return null;
         }
     } catch (error) {
-        console.log(error)
-        return null
+        console.log(error);
+        return null;
     }
 }
 
 export const RecentlyTransferedWallets = async (id: string) => {
     try {
-        const txns = await prisma.txns.findMany({
-            where: { userId: id }
-        })
-        return txns
+        const txns = await prisma.tokenTransaction.findMany({
+            where: {
+                userId: id,
+            },
+            orderBy: {
+                createdAt: 'desc', // Order by most recent transactions
+            },
+        });
+        return txns;
     } catch (error) {
-        console.log(error)
-        return null
+        console.log(error);
+        return null;
     }
 }
 
-export const AddFriend = async (fromid: string, toid: string, toname: string) => {
+export const AddFriend = async (fromId: string, toId: string, toName: string) => {
     try {
-        const fromuserinfo = await FetchUserInfo(fromid)
-        const touserinfo = await FetchUserInfo(toid)
+        const fromUserInfo = await FetchUserInfo(fromId);
+        const toUserInfo = await FetchUserInfo(toId);
 
-        if (fromuserinfo && touserinfo) {
-            const ToUserFriendList = touserinfo?.friendList
-            const Friendlist = fromuserinfo?.friendList
+        if (fromUserInfo && toUserInfo) {
+            await prisma.friend.create({
+                data: {
+                    userId: fromId,
+                    friendId: toId,
+                    name: toName,
+                    createdAt: currentDateTime,
+                },
+            });
 
-            const Fromupdatedfriendlist = [{
-                FriendId: toid,
-                Name: toname,
-                timestamp: currentDateTime
-                //@ts-ignore
-            }, ...Friendlist,]
-            const ToUpdatedFriendlist = [{
-                FriendId: fromid,
-                Name: fromuserinfo?.username,
-                timestamp: currentDateTime
-                //@ts-ignore
-            }, ...ToUserFriendList]
-            const FromupdatedFriendlist = await prisma.user.update({
-                where: { id: fromid },
+            await prisma.friend.create({
                 data: {
-                    friendList: Fromupdatedfriendlist
-                }
-            })
-            const TouserUpdate = await prisma.user.update({
-                where: { id: toid },
-                data: {
-                    friendList: ToUpdatedFriendlist
-                }
-            })
-            return true
+                    userId: toId,
+                    friendId: fromId,
+                    name: fromUserInfo.username,
+                    createdAt: currentDateTime,
+                },
+            });
+
+            return true;
         } else {
-            return null
+            return null;
         }
+    } catch (error) {
+        console.log(error);
+        return null;
     }
-    catch (error) {
+}
+
+export const fetchtxns = async (userId: string) => {
+    try {
+        const data = await prisma.tokenTransaction.findMany({
+            where: { userId }
+        })
+        return data
+    } catch (error) {
         console.log(error)
-        return null
+        return []
+    }
+}
+
+export const fetchfrineds = async (userId:string)=>{
+    try {
+        const data = await prisma.friend.findMany({
+            where:{userId}
+        })
+        return data
+    } catch (error) {
+        console.log(error)
+        return []
     }
 }
