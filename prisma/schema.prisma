@@ -7,19 +7,39 @@ datasource db {
     url      = env("DATABASE_URL")
 }
 
-model user {
-    id         String   @id @default(uuid()) @map("_id")
-    username   String   @unique
-    password   String
-    tokens     Int      @default(100)
-    tokenTxns  Json    
-    friendList Json     @default("[]") // Ensure valid JSON structure
-    createdAt  DateTime @default(now())
-    updatedAt  DateTime @updatedAt
+model User {
+    id          String             @id @default(uuid()) @map("_id")
+    username    String             @unique
+    password    String
+    tokens      Int                @default(100)
+    tokenTxns   TokenTransaction[]
+    friendList  Friend[]
+    createdAt   DateTime           @default(now())
+    updatedAt   DateTime           @updatedAt
+    Transaction Transaction[]
 }
 
-model txns {
+model TokenTransaction {
     id          String   @id @default(uuid()) @map("_id")
+    user        User?    @relation(fields: [userId], references: [id])
+    userId      String?
+    transaction Json?
+    createdAt   DateTime @default(now())
+    updatedAt   DateTime @updatedAt
+}
+
+model Friend {
+    id        String   @id @default(uuid()) @map("_id")
+    user      User?    @relation(fields: [userId], references: [id])
+    name     String
+    userId    String?
+    friendId  String
+    createdAt DateTime @default(now())
+}
+
+model Transaction {
+    id          String   @id @default(uuid()) @map("_id")
+    user        User?    @relation(fields: [userId], references: [id])
     userId      String?
     transaction Json?
     createdAt   DateTime @default(now())

@@ -1,5 +1,5 @@
 "use client"
-import { FetchUserInfo, RecentlyTransferedWallets } from '@/actions/HomeActions'
+import { fetchfrineds, FetchUserInfo, RecentlyTransferedWallets } from '@/actions/HomeActions'
 import { useSession } from 'next-auth/react'
 import React, { useEffect, useState } from 'react'
 import { FriendTransfer } from './FriendTransfer'
@@ -14,9 +14,9 @@ export default function RecentlyTransfered({ }) {
     const userid = session?.user.id || ""
     useEffect(() => {
         const fetchwallets = async () => {
-            let things = await FetchUserInfo(userid)
+            let things = await fetchfrineds(userid)
             //@ts-ignore
-            setwallets(things.friendList)
+            setwallets(things)
         }
         if (session?.user) {
             fetchwallets()
@@ -39,8 +39,8 @@ export default function RecentlyTransfered({ }) {
                             wallets && wallets.length > 0 ? (
                                 wallets.map((i: any, index: number) => (
                                     <div key={index} className='flex gap-x-10'>
-                                        <div className='bg-[#414042] rounded-lg  mb-5 cursor-pointer text-center p-2 min-w-[300px] text-white'>{i.Name}</div>
-                                        <div className='bg-[#38F68F] rounded-lg  mb-5 cursor-pointer text-center p-2 text-black'><FriendTransfer name={i.Name} ToId={i.FriendId} FromId={userid} /></div>
+                                        <div className='bg-[#414042] rounded-lg  mb-5 cursor-pointer text-center p-2 min-w-[300px] text-white'>{i.name}</div>
+                                        <div className='bg-[#38F68F] rounded-lg  mb-5 cursor-pointer text-center p-2 text-black'><FriendTransfer name={i.name} ToId={i.friendId} FromId={userid} /></div>
                                     </div>
                                 ))
                             ) : (
